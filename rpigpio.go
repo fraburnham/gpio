@@ -2,14 +2,16 @@ package gpio
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"strconv"
 )
 
 type RpiGPIO struct {
-	pin      int
-	isOutput bool
+	pin        int
+	isOutput   bool
 	isExported bool
-	baseDir  string
+	baseDir    string
 }
 
 func write(file string, data string) error {
@@ -104,11 +106,17 @@ func (g *RpiGPIO) WriteValue(val int) error {
 }
 
 func (g *RpiGPIO) ReadValue() (int, error) {
-	// return the value
-	// /sys/class/gpio/gpio%d/value
+	if g.isOutput {
+		return 0, &RpiGPIOError{msg: fmt.Sprintf("Pin %d is not an input pin", g.pin)}
+	}
 
-	// skipping for a hot min... gonna see output work first
-	return 0, nil
+	data, err := ioutil.ReadFile(fmt.Sprintf("%s/gpio%d/value", g.baseDir, g.pin))
+
+	if err != nil {
+		return 0, attachErrorCause(fmt.Sprintf("Failed to read value from pin %d", g.pin), err)
+	}
+
+	return strconv.Atoi(string(data))
 }
 
 func NewRpiGPIO(pin int) (*RpiGPIO, error) {
@@ -117,7 +125,3 @@ func NewRpiGPIO(pin int) (*RpiGPIO, error) {
 
 	return r, r.MakeOutput()
 }
-
-// for tests I can change the baseDir to some mock shit
-// and read/cleanup files from there
-// then in real life the GPIO iface would be mocked for tests
