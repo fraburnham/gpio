@@ -60,14 +60,12 @@ func (g *RpiGPIO) MakeOutput() error {
 		g.isExported = true
 	}
 
-	if !g.isOutput {
-		err := setDirection(g.baseDir, g.pin, 1)
-		if err != nil {
-			return attachErrorCause(fmt.Sprintf("Failed to set pin %d direction", g.pin), err)
-		}
-
-		g.isOutput = true
+	err := setDirection(g.baseDir, g.pin, 1)
+	if err != nil {
+		return attachErrorCause(fmt.Sprintf("Failed to set pin %d direction", g.pin), err)
 	}
+
+	g.isOutput = true
 
 	return nil
 }
@@ -81,13 +79,11 @@ func (g *RpiGPIO) MakeInput() error {
 		g.isExported = true
 	}
 
-	if g.isOutput {
-		err := setDirection(g.baseDir, g.pin, 0)
-		if err != nil {
-			return attachErrorCause(fmt.Sprintf("Failed to set pin %d direction", g.pin), err)
-		}
-		g.isOutput = false
+	err := setDirection(g.baseDir, g.pin, 0)
+	if err != nil {
+		return attachErrorCause(fmt.Sprintf("Failed to set pin %d direction", g.pin), err)
 	}
+	g.isOutput = false
 
 	return nil
 }
