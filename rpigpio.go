@@ -119,9 +119,16 @@ func (g *RpiGPIO) ReadValue() (int, error) {
 	return strconv.Atoi(string(data))
 }
 
-func NewRpiGPIO(pin int) (*RpiGPIO, error) {
+func NewRpiOutput(pin int) (*RpiGPIO, error) {
 	r := &RpiGPIO{pin: pin,
 		baseDir: "/sys/class/gpio"}
 
 	return r, r.MakeOutput()
+}
+
+func NewRpiInput(pin int) (*RpiGPIO, error) {
+	r := &RpiGPIO{pin: pin,
+		baseDir: "/sys/class/gpio"}
+
+	return r, r.MakeInput()
 }
