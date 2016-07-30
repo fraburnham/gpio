@@ -162,3 +162,38 @@ func TestReadValue(t *testing.T) {
 	tearDown(pinNum)
 	t.Logf("%s ReadValue", passCheck)
 }
+
+func ExampleNewRpiOutput() {
+	// create a new output pin
+	rpiOutput, err := NewRpiOutput(1)
+	if err != nil {
+		panic(err)
+	}
+
+	// set pin high
+	err = rpiOutput.WriteValue(1)
+	if err != nil {
+		panic(err)
+	}
+
+	// set pin low
+	err = rpiOutput.WriteValue(0)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func ExampleNewRpiInput() {
+	// create new input pin
+	rpiInput, err := NewRpiInput(1)
+	if err != nil {
+		panic(err)
+	}
+
+	// read value
+	val, err := rpiInput.ReadValue()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(val)
+}
