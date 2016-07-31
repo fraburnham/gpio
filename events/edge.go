@@ -28,10 +28,10 @@ func edgeTrigger(pin gpio.GPIO, eventCh chan EdgeEvent, ctrlCh chan bool) (error
 			}
 
 			if newState != lastState {
-				lastState = newState
 				eventCh <- EdgeEvent{BeforeEvent: lastState,
 					AfterEvent: newState,
 					Timestamp: time.Now()}
+				lastState = newState
 			}
 		}
 	}
