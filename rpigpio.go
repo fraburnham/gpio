@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
-	"time"
 )
 
 type RpiGPIO struct {
@@ -114,40 +113,6 @@ func (g *RpiGPIO) ReadValue() (int, error) {
 	}
 
 	return strconv.Atoi(string(data))
-}
-
-// should this be a separate lib?
-// def a separate file
-type Event struct {
-	BeforeEvent int
-	AfterEvent int
-	Timestamp time.Time
-}
-
-func EdgeTrigger(g *RpiGPIO, eventCh chan Event, ctrlCh chan bool) (error) {
-	lastState, err := g.ReadValue()
-	if err != nil {
-		return attachErrorCause(fmt.Sprintf("Failed in EdgeTrigger"), err)
-	}
-
-	for true {
-		select {
-		case <-ctrlCh:
-			return nil
-		default:
-			newState, err := g.ReadValue()
-			if err != nil {
-				return attachErrorCause(fmt.Sprintf("Failed in EdgeTrigger"), err)
-			}
-
-			if newState != lastState {
-				eventCh <- Event{BeforeEvent: lastState,
-					AfterEvent: newState,
-					Timestamp: time.Now()}
-			}
-		}
-	}
-	return nil
 }
 
 func NewRpiOutput(pin int) (*RpiGPIO, error) {
