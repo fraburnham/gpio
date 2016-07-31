@@ -38,8 +38,8 @@ func edgeTrigger(pin gpio.GPIO, eventCh chan EdgeEvent, ctrlCh chan bool) (error
 	return nil
 }
 
-func StartEdgeTrigger(pin gpio.GPIO) (chan EdgeEvent, chan bool) {
-	eventCh := make(chan EdgeEvent) // this should have a buffer
+func StartEdgeTrigger(pin gpio.GPIO, holdEvents int) (chan EdgeEvent, chan bool) {
+	eventCh := make(chan EdgeEvent, holdEvents) // this should have a buffer
 	ctrlCh := make(chan bool)
 
 	go edgeTrigger(pin, eventCh, ctrlCh)
