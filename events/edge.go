@@ -14,8 +14,7 @@ type EdgeEvent struct {
 func edgeTrigger(pin gpio.GPIO, eventCh chan EdgeEvent, ctrlCh chan bool) (error) {
 	lastState, err := pin.ReadValue()
 	if err != nil {
-		// need to panic or something, no one is listening :(
-		return err // improve
+		panic(err) // improve
 	}
 
 	for true {
@@ -25,7 +24,7 @@ func edgeTrigger(pin gpio.GPIO, eventCh chan EdgeEvent, ctrlCh chan bool) (error
 		default:
 			newState, err := pin.ReadValue()
 			if err != nil {
-				return err  // improve
+				panic(err)  // improve
 			}
 
 			if newState != lastState {
