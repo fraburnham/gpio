@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type RpiGPIO struct {
@@ -112,7 +113,7 @@ func (g *RpiGPIO) ReadValue() (int, error) {
 		return 0, attachErrorCause(fmt.Sprintf("Failed to read value from pin %d", g.pin), err)
 	}
 
-	return strconv.Atoi(string(data))
+	return strconv.Atoi(strings.TrimSpace(string(data)))
 }
 
 func NewRpiOutput(pin int) (*RpiGPIO, error) {
