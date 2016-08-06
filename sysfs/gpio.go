@@ -4,20 +4,25 @@ import (
 	"fmt"
 	"gpio"
 	"strconv"
+	"sync"
 )
 
-type SysfsGPIO struct {
-	pin        int
-	isOutput   bool
+type GPIO struct {
+	pin      int
+	isOutput bool // this needs to be direction and an enum or something 1 = input 2 = output
+	// currently the interrupt shit doesn't care that the pin direction has never been set!
 	isExported bool
+	isInterrupt bool
 	baseDir    string
+	wg         sync.WaitGroup
 }
 
-func (g *SysfsGPIO) Close() error {
+func (g *GPIO) Close() error {
+	g.wg.Wait()
 	return unexportPin(g.baseDir, g.pin)
 }
 
-func (g *SysfsGPIO) MakeOutput() error {
+func (g *GPIO) MakeOutput() error {
 	if !g.isExported {
 		err := exportPin(g.baseDir, g.pin)
 		if err != nil {
@@ -36,7 +41,7 @@ func (g *SysfsGPIO) MakeOutput() error {
 	return nil
 }
 
-func (g *SysfsGPIO) MakeInput() error {
+func (g *GPIO) MakeInput() error {
 	if !g.isExported {
 		err := exportPin(g.baseDir, g.pin)
 		if err != nil {
@@ -54,7 +59,8 @@ func (g *SysfsGPIO) MakeInput() error {
 	return nil
 }
 
-func (g *SysfsGPIO) WriteValue(val int) error {
+func (g *GPIO) WriteValue(val int) error {
+	// also check if exported
 	if !g.isOutput {
 		return gpio.NewGPIOError(fmt.Sprintf("Pin %d is not an output pin", g.pin))
 	}
@@ -67,7 +73,8 @@ func (g *SysfsGPIO) WriteValue(val int) error {
 	return nil
 }
 
-func (g *SysfsGPIO) ReadValue() (int, error) {
+func (g *GPIO) ReadValue() (int, error) {
+	// also check if exported
 	if g.isOutput {
 		return 0, gpio.NewGPIOError(fmt.Sprintf("Pin %d is not an input pin", g.pin))
 	}
@@ -81,15 +88,17 @@ func (g *SysfsGPIO) ReadValue() (int, error) {
 	return strconv.Atoi(data)
 }
 
-func NewSysfsOutput(pin int) (*SysfsGPIO, error) {
-	r := &SysfsGPIO{pin: pin,
+func NewOutput(pin int) (*GPIO, error) {
+	r := &GPIO{
+		pin:     pin,
 		baseDir: "/sys/class/gpio"}
 
 	return r, r.MakeOutput()
 }
 
-func NewSysfsInput(pin int) (*SysfsGPIO, error) {
-	r := &SysfsGPIO{pin: pin,
+func NewInput(pin int) (*GPIO, error) {
+	r := &GPIO{
+		pin:     pin,
 		baseDir: "/sys/class/gpio"}
 
 	return r, r.MakeInput()

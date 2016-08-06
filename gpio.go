@@ -3,8 +3,8 @@ package gpio
 import "time"
 
 type InterruptEvent struct {
-	value int
-	timestamp time.Time
+	Value     int
+	Timestamp time.Time
 }
 
 type GPIO interface {
@@ -12,6 +12,7 @@ type GPIO interface {
 	MakeInput() error
 	WriteValue(int) error
 	ReadValue() (int, error)
-	Interrupt(string, chan InterruptEvent) error
+	SetInterrupt(string, chan InterruptEvent) (chan bool, error)
+	ClearInterrupt(chan bool) error
 	Close() error
 }
