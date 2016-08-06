@@ -2,10 +2,7 @@ package gpio
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"strconv"
-	"strings"
 )
 
 type RpiGPIO struct {
@@ -13,39 +10,6 @@ type RpiGPIO struct {
 	isOutput   bool
 	isExported bool
 	baseDir    string
-}
-
-func write(file string, data string) error {
-	f, err := os.OpenFile(file, os.O_WRONLY, 0644)
-	defer f.Close()
-
-	if err == nil {
-		_, err = f.WriteString(data)
-	}
-
-	return err
-}
-
-func exportPin(baseDir string, pin int) error {
-	return write(fmt.Sprintf("%s/export", baseDir),
-		fmt.Sprintf("%d", pin))
-}
-
-func unexportPin(baseDir string, pin int) error {
-	return write(fmt.Sprintf("%s/unexport", baseDir),
-		fmt.Sprintf("%d", pin))
-}
-
-func setDirection(baseDir string, pin int, direction int) error {
-	pinDirection := map[int]string{1: "out", 0: "in"} // should/could be a const?
-
-	return write(fmt.Sprintf("%s/gpio%d/direction", baseDir, pin),
-		pinDirection[direction])
-}
-
-func writeValue(baseDir string, pin int, value int) error {
-	return write(fmt.Sprintf("%s/gpio%d/value", baseDir, pin),
-		fmt.Sprintf("%d", value))
 }
 
 func (g *RpiGPIO) Close() error {
@@ -107,13 +71,13 @@ func (g *RpiGPIO) ReadValue() (int, error) {
 		return 0, &RpiGPIOError{msg: fmt.Sprintf("Pin %d is not an input pin", g.pin)}
 	}
 
-	data, err := ioutil.ReadFile(fmt.Sprintf("%s/gpio%d/value", g.baseDir, g.pin))
+	data, err := readValue(g.baseDir, g.pin)
 
 	if err != nil {
 		return 0, attachErrorCause(fmt.Sprintf("Failed to read value from pin %d", g.pin), err)
 	}
 
-	return strconv.Atoi(strings.TrimSpace(string(data)))
+	return strconv.Atoi(data)
 }
 
 func NewRpiOutput(pin int) (*RpiGPIO, error) {
