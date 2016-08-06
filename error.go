@@ -2,14 +2,18 @@ package gpio
 
 import "fmt"
 
-type RpiGPIOError struct {
+type GPIOError struct {
 	msg string
 }
 
-func (e *RpiGPIOError) Error() string {
+func (e *GPIOError) Error() string {
 	return e.msg
 }
 
-func attachErrorCause(msg string, cause error) error {
-	return &RpiGPIOError{msg: fmt.Sprintf("%s: %s", msg, cause.Error())}
+func NewGPIOError(msg string) *GPIOError {
+	return &GPIOError{msg: msg}
+}
+
+func AttachErrorCause(msg string, cause error) error {
+	return &GPIOError{msg: fmt.Sprintf("%s: %s", msg, cause.Error())}
 }

@@ -1,6 +1,7 @@
-package gpio
+package sysfs
 
 import (
+	"gpio"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -23,8 +24,8 @@ func panicErr(err error) {
 	}
 }
 
-func newTestRpiGPIO(pin int) *RpiGPIO {
-	return &RpiGPIO{pin: pin,
+func newTestSysfsGPIO(pin int) *SysfsGPIO {
+	return &SysfsGPIO{pin: pin,
 		baseDir: testBaseDir}
 }
 
@@ -66,14 +67,14 @@ func checkValue(filePath string, expectedValue string) bool {
 func TestMakeOutput(t *testing.T) {
 	pinNum := 1
 	pinStr := fmt.Sprintf("%d", pinNum)
-	r := newTestRpiGPIO(pinNum)
-	defer r.Close()
+	s := newTestSysfsGPIO(pinNum)
+	defer s.Close()
 	setUp(pinNum)
 
-	panicErr(r.MakeOutput())
+	panicErr(s.MakeOutput())
 
-	if !r.isOutput || !r.isExported {
-		t.Errorf("%s MakeOutput failed to update RpiGPIO", failX)
+	if !s.isOutput || !s.isExported {
+		t.Errorf("%s MakeOutput failed to update SysfsGPIO", failX)
 	}
 
 	if !checkValue(fmt.Sprintf(exportPathFmt, testBaseDir), pinStr) {
@@ -91,14 +92,14 @@ func TestMakeOutput(t *testing.T) {
 func TestMakeInput(t *testing.T) {
 	pinNum := 1
 	pinStr := fmt.Sprintf("%d", pinNum)
-	r := newTestRpiGPIO(pinNum)
-	defer r.Close()
+	s := newTestSysfsGPIO(pinNum)
+	defer s.Close()
 	setUp(pinNum)
 
-	panicErr(r.MakeInput())
+	panicErr(s.MakeInput())
 
-	if r.isOutput || !r.isExported {
-		t.Errorf("%s MakeOutput failed to update RpiGPIO", failX)
+	if s.isOutput || !s.isExported {
+		t.Errorf("%s MakeOutput failed to update SysfsGPIO", failX)
 	}
 
 	if !checkValue(fmt.Sprintf(exportPathFmt, testBaseDir), pinStr) {
@@ -115,18 +116,18 @@ func TestMakeInput(t *testing.T) {
 
 func TestWriteValue(t *testing.T) {
 	pinNum := 1
-	r := newTestRpiGPIO(pinNum)
-	defer r.Close()
+	s := newTestSysfsGPIO(pinNum)
+	defer s.Close()
 	setUp(pinNum)
-	panicErr(r.MakeOutput())
+	panicErr(s.MakeOutput())
 
-	panicErr(r.WriteValue(1))
+	panicErr(s.WriteValue(1))
 
 	if !checkValue(fmt.Sprintf(valuePathFmt, testBaseDir, pinNum), "1") {
 		t.Errorf("%s WriteValue failed to set pin high", failX)
 	}
 
-	panicErr(r.WriteValue(0))
+	panicErr(s.WriteValue(0))
 
 	if !checkValue(fmt.Sprintf(valuePathFmt, testBaseDir, pinNum), "0") {
 		t.Errorf("%s WriteValue failed to set pin low", failX)
@@ -138,14 +139,14 @@ func TestWriteValue(t *testing.T) {
 
 func TestReadValue(t *testing.T) {
 	pinNum := 1
-	r := newTestRpiGPIO(pinNum)
-	defer r.Close()
+	s := newTestSysfsGPIO(pinNum)
+	defer s.Close()
 	setUp(pinNum)
-	r.MakeInput()
+	s.MakeInput()
 
 	panicErr(write(fmt.Sprintf(valuePathFmt, testBaseDir, pinNum), "1"))
 
-	val, err := r.ReadValue()
+	val, err := s.ReadValue()
 	panicErr(err)
 	if val != 1 {
 		t.Errorf("%s ReadValue failed to read pin set high", failX)
@@ -153,7 +154,7 @@ func TestReadValue(t *testing.T) {
 
 	panicErr(write(fmt.Sprintf(valuePathFmt, testBaseDir, pinNum), "0"))
 
-	val, err = r.ReadValue()
+	val, err = s.ReadValue()
 	panicErr(err)
 	if val != 0 {
 		t.Errorf("%s ReadValue failed to read pin set low", failX)
@@ -163,35 +164,43 @@ func TestReadValue(t *testing.T) {
 	t.Logf("%s ReadValue", passCheck)
 }
 
-func ExampleNewRpiOutput() {
+func TestInterfaceImplementation(t *testing.T) {
+	var x gpio.GPIO = newTestSysfsGPIO(1)
+	defer x.Close()
+	if x == nil {
+		t.Errorf("SysfsGPIO does not implement GPIO!")
+	}
+}
+
+func ExampleNewSysfsOutput() {
 	// create a new output pin
-	rpiOutput, err := NewRpiOutput(1)
+	sysfsOutput, err := NewSysfsOutput(1)
 	if err != nil {
 		panic(err)
 	}
 
 	// set pin high
-	err = rpiOutput.WriteValue(1)
+	err = sysfsOutput.WriteValue(1)
 	if err != nil {
 		panic(err)
 	}
 
 	// set pin low
-	err = rpiOutput.WriteValue(0)
+	err = sysfsOutput.WriteValue(0)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func ExampleNewRpiInput() {
+func ExampleNewSysfsInput() {
 	// create new input pin
-	rpiInput, err := NewRpiInput(1)
+	sysfsInput, err := NewSysfsInput(1)
 	if err != nil {
 		panic(err)
 	}
 
 	// read value
-	val, err := rpiInput.ReadValue()
+	val, err := sysfsInput.ReadValue()
 	if err != nil {
 		panic(err)
 	}
