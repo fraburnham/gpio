@@ -1,8 +1,8 @@
 package sysfs
 
 import (
-	"gpio"
 	"fmt"
+	"gpio"
 	"io/ioutil"
 	"os"
 	"testing"

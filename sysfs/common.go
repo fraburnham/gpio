@@ -2,8 +2,8 @@ package sysfs
 
 import (
 	"fmt"
-	"os"
 	"io/ioutil"
+	"os"
 	"strings"
 )
 
