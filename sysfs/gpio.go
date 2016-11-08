@@ -8,13 +8,13 @@ import (
 )
 
 type GPIO struct {
-	pin      int
-	isOutput bool // this needs to be direction and an enum or something 1 = input 2 = output
-	// currently the interrupt shit doesn't care that the pin direction has never been set!
-	isExported bool
-	isInterrupt bool
-	baseDir    string
-	wg         sync.WaitGroup
+	pin             int
+	direction       string
+	isExported      bool
+	isInterrupt     bool
+	interruptCtrlCh chan bool
+	baseDir         string
+	wg              sync.WaitGroup
 }
 
 func (g *GPIO) Close() error {
@@ -36,7 +36,7 @@ func (g *GPIO) MakeOutput() error {
 		return gpio.AttachErrorCause(fmt.Sprintf("Failed to set pin %d direction", g.pin), err)
 	}
 
-	g.isOutput = true
+	g.direction = "output"
 
 	return nil
 }
@@ -54,15 +54,18 @@ func (g *GPIO) MakeInput() error {
 	if err != nil {
 		return gpio.AttachErrorCause(fmt.Sprintf("Failed to set pin %d direction", g.pin), err)
 	}
-	g.isOutput = false
+	g.direction = "input"
 
 	return nil
 }
 
 func (g *GPIO) WriteValue(val int) error {
-	// also check if exported
-	if !g.isOutput {
-		return gpio.NewGPIOError(fmt.Sprintf("Pin %d is not an output pin", g.pin))
+	if !g.isExported {
+		return gpio.NewError(fmt.Sprintf("Pin %d is not exported", g.pin))
+	}
+
+	if g.direction == "input" {
+		return gpio.NewError(fmt.Sprintf("Pin %d is not an output pin", g.pin))
 	}
 
 	err := writeValue(g.baseDir, g.pin, val)
@@ -74,9 +77,12 @@ func (g *GPIO) WriteValue(val int) error {
 }
 
 func (g *GPIO) ReadValue() (int, error) {
-	// also check if exported
-	if g.isOutput {
-		return 0, gpio.NewGPIOError(fmt.Sprintf("Pin %d is not an input pin", g.pin))
+	if !g.isExported {
+		return 0, gpio.NewError(fmt.Sprintf("Pin %d is not exported", g.pin))
+	}
+
+	if g.direction == "output" {
+		return 0, gpio.NewError(fmt.Sprintf("Pin %d is not an input pin", g.pin))
 	}
 
 	data, err := readValue(g.baseDir, g.pin)

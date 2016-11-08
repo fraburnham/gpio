@@ -79,7 +79,7 @@ func TestMakeOutput(t *testing.T) {
 
 	panicErr(s.MakeOutput())
 
-	if !s.isOutput || !s.isExported {
+	if s.direction != "output" || !s.isExported {
 		t.Errorf("%s MakeOutput failed to update GPIO", failX)
 	}
 
@@ -104,8 +104,8 @@ func TestMakeInput(t *testing.T) {
 
 	panicErr(s.MakeInput())
 
-	if s.isOutput || !s.isExported {
-		t.Errorf("%s MakeOutput failed to update GPIO", failX)
+	if s.direction != "input" || !s.isExported {
+		t.Errorf("%s MakeInput failed to update GPIO", failX)
 	}
 
 	if !checkValue(fmt.Sprintf(exportPathFmt, testBaseDir), pinStr) {

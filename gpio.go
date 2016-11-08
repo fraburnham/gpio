@@ -5,6 +5,7 @@ import "time"
 type InterruptEvent struct {
 	Value     int
 	Timestamp time.Time
+	Err       error
 }
 
 type GPIO interface {
@@ -12,7 +13,7 @@ type GPIO interface {
 	MakeInput() error
 	WriteValue(int) error
 	ReadValue() (int, error)
-	SetInterrupt(string, chan InterruptEvent) (chan bool, error)
-	ClearInterrupt(chan bool) error
+	SetInterrupt(string, chan InterruptEvent, int) error
+	ClearInterrupt() error
 	Close() error
 }

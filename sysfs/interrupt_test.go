@@ -16,7 +16,7 @@ func TestUnexportedPin(t *testing.T) {
 	defer s.Close()
 	setUp(pinNum)
 
-	_, err := s.SetInterrupt("rising", make(chan gpio.InterruptEvent))
+	err := s.SetInterrupt("rising", make(chan gpio.InterruptEvent), 1)
 	if err == nil {
 		t.Errorf("%s interruptListenr didn't fail on an unexported pin", failX)
 	}

@@ -51,31 +51,39 @@ func validEdge(edge string) bool {
 	return validEdges[edge]
 }
 
-func interruptListner(ctrlCh chan bool, g *GPIO, ch chan gpio.InterruptEvent) {
+func interruptListner(ctrlCh chan bool, g *GPIO, ch chan gpio.InterruptEvent, pollTimeoutMs int) {
 	f, err := os.OpenFile(valueFmt(g.baseDir, g.pin), os.O_RDONLY, 0644)
-	fd := C.int(f.Fd())
-	C.c_read(fd)
+	defer f.Close()
 	if err != nil {
-		panic(err) // shitty!
+		ch <- gpio.InterruptEvent{Err: err}
+		g.wg.Done()
+		return
 	}
 
-	defer f.Close()
+	fd := C.int(f.Fd())
+	C.c_read(fd) // not sure if this needs to be read from c, should experiment
 
-	for {
+	for { // it would be nice to refactor some of this, the conditionals are getting hard to read
 		select {
 		case <-ctrlCh:
 			g.wg.Done()
 			return
 		default:
-			poll := C.interrupt_poll(fd, 10) // this polling frequency should be configurable!
+			poll := C.interrupt_poll(fd, C.int(pollTimeoutMs))
 			switch poll {
 			case 1:
 				eventTime := time.Now()
-				val, _ := g.ReadValue()          // needs error handling
+				val, err := g.ReadValue()
+				if err != nil {
+					ch <- gpio.InterruptEvent{Err: err}
+					continue
+				}
 				ch <- gpio.InterruptEvent{
-					Value: val,
+					Value:     val,
 					Timestamp: eventTime}
-			// case -1: some kind of error handling
+			case -1:
+				ch <- gpio.InterruptEvent{
+					Err: gpio.NewError(fmt.Sprintf("poll failed on interrupt for pin %d", g.pin))}
 			case 0:
 				break
 			}
@@ -83,42 +91,41 @@ func interruptListner(ctrlCh chan bool, g *GPIO, ch chan gpio.InterruptEvent) {
 	}
 }
 
-func (g *GPIO) SetInterrupt(edge string, ch chan gpio.InterruptEvent) (chan bool, error) {
+func (g *GPIO) SetInterrupt(edge string, ch chan gpio.InterruptEvent, pollTimeoutMs int) error {
 	if g.isInterrupt {
-		return nil, gpio.NewGPIOError(fmt.Sprintf("Pin %d already has an interrupt set", g.pin))
+		return gpio.NewError(fmt.Sprintf("Pin %d already has an interrupt set", g.pin))
 	}
 
 	if !g.isExported {
-		return nil, gpio.NewGPIOError(fmt.Sprintf("Pin %d is not exported", g.pin))
+		return gpio.NewError(fmt.Sprintf("Pin %d is not exported", g.pin))
 	}
 
-	if g.isOutput { // this should be updated to check direction (less error prone)
-		return nil, gpio.NewGPIOError(fmt.Sprintf("Pin %d is not an input pin", g.pin))
+	if g.direction == "output" {
+		return gpio.NewError(fmt.Sprintf("Pin %d is not an input pin", g.pin))
 	}
 
 	if !validEdge(edge) {
-		return nil, gpio.NewGPIOError(fmt.Sprintf("Unable to set edge. Got %s expected one of rising, falling, both.", edge))
+		return gpio.NewError(fmt.Sprintf("Unable to set edge. Got %s expected one of rising, falling, both.", edge))
 	}
 
 	err := setInterrupt(g.baseDir, g.pin, edge)
 	if err != nil {
-		return nil, gpio.AttachErrorCause(fmt.Sprintf("Failed to set interrupt on pin %d with edge %s", g.pin, edge), err)
+		return gpio.AttachErrorCause(fmt.Sprintf("Failed to set interrupt on pin %d with edge %s", g.pin, edge), err)
 	}
 
-	ctrlCh := make(chan bool)
+	g.interruptCtrlCh = make(chan bool)
 	g.wg.Add(1)
 	g.isInterrupt = true
-	go interruptListner(ctrlCh, g, ch)
+	go interruptListner(g.interruptCtrlCh, g, ch, pollTimeoutMs)
 
-	return ctrlCh, nil
+	return nil
 }
 
-func (g *GPIO) ClearInterrupt(ctrlCh chan bool) error {
+func (g *GPIO) ClearInterrupt() error {
 	if !g.isInterrupt {
-		// rename to gpio.NewError
-		return gpio.NewGPIOError(fmt.Sprintf("Pin %d does not have an interrupt set", g.pin))
+		return gpio.NewError(fmt.Sprintf("Pin %d does not have an interrupt set", g.pin))
 	}
 
-	ctrlCh <- true
+	g.interruptCtrlCh <- true
 	return nil
 }
