@@ -4,20 +4,25 @@ import (
 	"fmt"
 	"gpio"
 	"strconv"
+	"sync"
 )
 
-type SysfsGPIO struct {
-	pin        int
-	isOutput   bool
-	isExported bool
-	baseDir    string
+type GPIO struct {
+	pin             int
+	direction       string
+	isExported      bool
+	isInterrupt     bool
+	interruptCtrlCh chan bool
+	baseDir         string
+	wg              sync.WaitGroup
 }
 
-func (g *SysfsGPIO) Close() error {
+func (g *GPIO) Close() error {
+	g.wg.Wait()
 	return unexportPin(g.baseDir, g.pin)
 }
 
-func (g *SysfsGPIO) MakeOutput() error {
+func (g *GPIO) MakeOutput() error {
 	if !g.isExported {
 		err := exportPin(g.baseDir, g.pin)
 		if err != nil {
@@ -31,12 +36,12 @@ func (g *SysfsGPIO) MakeOutput() error {
 		return gpio.AttachErrorCause(fmt.Sprintf("Failed to set pin %d direction", g.pin), err)
 	}
 
-	g.isOutput = true
+	g.direction = "output"
 
 	return nil
 }
 
-func (g *SysfsGPIO) MakeInput() error {
+func (g *GPIO) MakeInput() error {
 	if !g.isExported {
 		err := exportPin(g.baseDir, g.pin)
 		if err != nil {
@@ -49,14 +54,18 @@ func (g *SysfsGPIO) MakeInput() error {
 	if err != nil {
 		return gpio.AttachErrorCause(fmt.Sprintf("Failed to set pin %d direction", g.pin), err)
 	}
-	g.isOutput = false
+	g.direction = "input"
 
 	return nil
 }
 
-func (g *SysfsGPIO) WriteValue(val int) error {
-	if !g.isOutput {
-		return gpio.NewGPIOError(fmt.Sprintf("Pin %d is not an output pin", g.pin))
+func (g *GPIO) WriteValue(val int) error {
+	if !g.isExported {
+		return gpio.NewError(fmt.Sprintf("Pin %d is not exported", g.pin))
+	}
+
+	if g.direction == "input" {
+		return gpio.NewError(fmt.Sprintf("Pin %d is not an output pin", g.pin))
 	}
 
 	err := writeValue(g.baseDir, g.pin, val)
@@ -67,9 +76,13 @@ func (g *SysfsGPIO) WriteValue(val int) error {
 	return nil
 }
 
-func (g *SysfsGPIO) ReadValue() (int, error) {
-	if g.isOutput {
-		return 0, gpio.NewGPIOError(fmt.Sprintf("Pin %d is not an input pin", g.pin))
+func (g *GPIO) ReadValue() (int, error) {
+	if !g.isExported {
+		return 0, gpio.NewError(fmt.Sprintf("Pin %d is not exported", g.pin))
+	}
+
+	if g.direction == "output" {
+		return 0, gpio.NewError(fmt.Sprintf("Pin %d is not an input pin", g.pin))
 	}
 
 	data, err := readValue(g.baseDir, g.pin)
@@ -81,15 +94,17 @@ func (g *SysfsGPIO) ReadValue() (int, error) {
 	return strconv.Atoi(data)
 }
 
-func NewSysfsOutput(pin int) (*SysfsGPIO, error) {
-	r := &SysfsGPIO{pin: pin,
+func NewOutput(pin int) (*GPIO, error) {
+	r := &GPIO{
+		pin:     pin,
 		baseDir: "/sys/class/gpio"}
 
 	return r, r.MakeOutput()
 }
 
-func NewSysfsInput(pin int) (*SysfsGPIO, error) {
-	r := &SysfsGPIO{pin: pin,
+func NewInput(pin int) (*GPIO, error) {
+	r := &GPIO{
+		pin:     pin,
 		baseDir: "/sys/class/gpio"}
 
 	return r, r.MakeInput()

@@ -14,6 +14,7 @@ const (
 	unexportPathFmt  = "%s/unexport"
 	directionPathFmt = "%s/gpio%d/direction"
 	valuePathFmt     = "%s/gpio%d/value"
+	edgePathFmt      = "%s/gpio%d/edge"
 	passCheck        = "\u2713"
 	failX            = "\u2717"
 )
@@ -24,16 +25,19 @@ func panicErr(err error) {
 	}
 }
 
-func newTestSysfsGPIO(pin int) *SysfsGPIO {
-	return &SysfsGPIO{pin: pin,
+func newTestGPIO(pin int) *GPIO {
+	return &GPIO{
+		pin:     pin,
 		baseDir: testBaseDir}
 }
 
 func setUp(pin int) {
-	files := []string{fmt.Sprintf(exportPathFmt, testBaseDir),
+	files := []string{
+		fmt.Sprintf(exportPathFmt, testBaseDir),
 		fmt.Sprintf(unexportPathFmt, testBaseDir),
 		fmt.Sprintf(directionPathFmt, testBaseDir, pin),
-		fmt.Sprintf(valuePathFmt, testBaseDir, pin)}
+		fmt.Sprintf(valuePathFmt, testBaseDir, pin),
+		fmt.Sprintf(edgePathFmt, testBaseDir, pin)}
 
 	// why does this need to be 0777? Why isn't the directory actually 0777?
 	// (its 0755)
@@ -46,10 +50,12 @@ func setUp(pin int) {
 }
 
 func tearDown(pin int) {
-	files := []string{fmt.Sprintf(exportPathFmt, testBaseDir),
+	files := []string{
+		fmt.Sprintf(exportPathFmt, testBaseDir),
 		fmt.Sprintf(unexportPathFmt, testBaseDir),
 		fmt.Sprintf(directionPathFmt, testBaseDir, pin),
-		fmt.Sprintf(valuePathFmt, testBaseDir, pin)}
+		fmt.Sprintf(valuePathFmt, testBaseDir, pin),
+		fmt.Sprintf(edgePathFmt, testBaseDir, pin)}
 
 	for i := range files {
 		panicErr(os.Remove(files[i]))
@@ -67,14 +73,14 @@ func checkValue(filePath string, expectedValue string) bool {
 func TestMakeOutput(t *testing.T) {
 	pinNum := 1
 	pinStr := fmt.Sprintf("%d", pinNum)
-	s := newTestSysfsGPIO(pinNum)
+	s := newTestGPIO(pinNum)
 	defer s.Close()
 	setUp(pinNum)
 
 	panicErr(s.MakeOutput())
 
-	if !s.isOutput || !s.isExported {
-		t.Errorf("%s MakeOutput failed to update SysfsGPIO", failX)
+	if s.direction != "output" || !s.isExported {
+		t.Errorf("%s MakeOutput failed to update GPIO", failX)
 	}
 
 	if !checkValue(fmt.Sprintf(exportPathFmt, testBaseDir), pinStr) {
@@ -92,14 +98,14 @@ func TestMakeOutput(t *testing.T) {
 func TestMakeInput(t *testing.T) {
 	pinNum := 1
 	pinStr := fmt.Sprintf("%d", pinNum)
-	s := newTestSysfsGPIO(pinNum)
+	s := newTestGPIO(pinNum)
 	defer s.Close()
 	setUp(pinNum)
 
 	panicErr(s.MakeInput())
 
-	if s.isOutput || !s.isExported {
-		t.Errorf("%s MakeOutput failed to update SysfsGPIO", failX)
+	if s.direction != "input" || !s.isExported {
+		t.Errorf("%s MakeInput failed to update GPIO", failX)
 	}
 
 	if !checkValue(fmt.Sprintf(exportPathFmt, testBaseDir), pinStr) {
@@ -116,7 +122,7 @@ func TestMakeInput(t *testing.T) {
 
 func TestWriteValue(t *testing.T) {
 	pinNum := 1
-	s := newTestSysfsGPIO(pinNum)
+	s := newTestGPIO(pinNum)
 	defer s.Close()
 	setUp(pinNum)
 	panicErr(s.MakeOutput())
@@ -139,7 +145,7 @@ func TestWriteValue(t *testing.T) {
 
 func TestReadValue(t *testing.T) {
 	pinNum := 1
-	s := newTestSysfsGPIO(pinNum)
+	s := newTestGPIO(pinNum)
 	defer s.Close()
 	setUp(pinNum)
 	s.MakeInput()
@@ -165,16 +171,16 @@ func TestReadValue(t *testing.T) {
 }
 
 func TestInterfaceImplementation(t *testing.T) {
-	var x gpio.GPIO = newTestSysfsGPIO(1)
+	var x gpio.GPIO = newTestGPIO(1)
 	defer x.Close()
 	if x == nil {
-		t.Errorf("SysfsGPIO does not implement GPIO!")
+		t.Errorf("GPIO does not implement GPIO!")
 	}
 }
 
 func ExampleNewSysfsOutput() {
 	// create a new output pin
-	sysfsOutput, err := NewSysfsOutput(1)
+	sysfsOutput, err := NewOutput(1)
 	if err != nil {
 		panic(err)
 	}
@@ -194,7 +200,7 @@ func ExampleNewSysfsOutput() {
 
 func ExampleNewSysfsInput() {
 	// create new input pin
-	sysfsInput, err := NewSysfsInput(1)
+	sysfsInput, err := NewInput(1)
 	if err != nil {
 		panic(err)
 	}

@@ -10,7 +10,7 @@ func (e *GPIOError) Error() string {
 	return e.msg
 }
 
-func NewGPIOError(msg string) *GPIOError {
+func NewError(msg string) *GPIOError {
 	return &GPIOError{msg: msg}
 }
 

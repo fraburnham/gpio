@@ -29,27 +29,26 @@ func write(file string, data string) error {
 }
 
 func exportPin(baseDir string, pin int) error {
-	return write(fmt.Sprintf("%s/export", baseDir),
-		fmt.Sprintf("%d", pin))
+	return write(exportFmt(baseDir), fmt.Sprintf("%d", pin))
 }
 
 func unexportPin(baseDir string, pin int) error {
-	return write(fmt.Sprintf("%s/unexport", baseDir),
-		fmt.Sprintf("%d", pin))
+	return write(unexportFmt(baseDir), fmt.Sprintf("%d", pin))
 }
 
 func setDirection(baseDir string, pin int, direction int) error {
-	pinDirection := map[int]string{1: "out", 0: "in"} // should/could be a const?
-
-	return write(fmt.Sprintf("%s/gpio%d/direction", baseDir, pin),
-		pinDirection[direction])
+	pinDirection := map[int]string{1: "out", 0: "in"}
+	return write(directionFmt(baseDir, pin), pinDirection[direction])
 }
 
 func readValue(baseDir string, pin int) (string, error) {
-	return read(fmt.Sprintf("%s/gpio%d/value", baseDir, pin))
+	return read(valueFmt(baseDir, pin))
 }
 
 func writeValue(baseDir string, pin int, value int) error {
-	return write(fmt.Sprintf("%s/gpio%d/value", baseDir, pin),
-		fmt.Sprintf("%d", value))
+	return write(valueFmt(baseDir, pin), fmt.Sprintf("%d", value))
+}
+
+func setInterrupt(baseDir string, pin int, edge string) error {
+	return write(edgeFmt(baseDir, pin), edge)
 }

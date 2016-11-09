@@ -7,11 +7,11 @@ import (
 
 type EdgeEvent struct {
 	BeforeEvent int
-	AfterEvent int
-	Timestamp time.Time
+	AfterEvent  int
+	Timestamp   time.Time
 }
 
-func edgeTrigger(pin gpio.GPIO, eventCh chan EdgeEvent, ctrlCh chan bool) (error) {
+func edgeTrigger(pin gpio.GPIO, eventCh chan EdgeEvent, ctrlCh chan bool) error {
 	lastState, err := pin.ReadValue()
 	if err != nil {
 		panic(err) // improve
@@ -24,13 +24,13 @@ func edgeTrigger(pin gpio.GPIO, eventCh chan EdgeEvent, ctrlCh chan bool) (error
 		default:
 			newState, err := pin.ReadValue()
 			if err != nil {
-				panic(err)  // improve
+				panic(err) // improve
 			}
 
 			if newState != lastState {
 				eventCh <- EdgeEvent{BeforeEvent: lastState,
 					AfterEvent: newState,
-					Timestamp: time.Now()}
+					Timestamp:  time.Now()}
 				lastState = newState
 			}
 		}
