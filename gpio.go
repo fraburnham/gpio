@@ -1,3 +1,4 @@
+// The gpio package provides an interface for interacting with GPIO pins. (rpi, bbb, etc)
 package gpio
 
 import "time"
