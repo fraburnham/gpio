@@ -2,7 +2,7 @@ package sysfs
 
 import (
 	"fmt"
-	"gpio"
+	"github.com/fraburnham/gpio"
 	"io/ioutil"
 	"os"
 	"testing"

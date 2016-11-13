@@ -3,7 +3,7 @@ package sysfs
 
 import (
 	"fmt"
-	"gpio"
+	"github.com/fraburnham/gpio"
 	"strconv"
 	"sync"
 )

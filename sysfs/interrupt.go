@@ -38,7 +38,7 @@ import "C"
 
 import (
 	"fmt"
-	"gpio"
+	"github.com/fraburnham/gpio"
 	"os"
 	"time"
 )
