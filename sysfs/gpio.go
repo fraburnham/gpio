@@ -1,3 +1,4 @@
+// The gpio/sysfs package provides sysfs implementation of the gpio interface
 package sysfs
 
 import (
@@ -17,11 +18,13 @@ type GPIO struct {
 	wg              sync.WaitGroup
 }
 
+// Close unexports an exported gpio.
 func (g *GPIO) Close() error {
 	g.wg.Wait()
 	return unexportPin(g.baseDir, g.pin)
 }
 
+// MakeOutput sets an exported gpio's mode to output.
 func (g *GPIO) MakeOutput() error {
 	if !g.isExported {
 		err := exportPin(g.baseDir, g.pin)
@@ -41,6 +44,7 @@ func (g *GPIO) MakeOutput() error {
 	return nil
 }
 
+// MakeOutput sets an exported gpio's mode to input.
 func (g *GPIO) MakeInput() error {
 	if !g.isExported {
 		err := exportPin(g.baseDir, g.pin)
@@ -59,6 +63,7 @@ func (g *GPIO) MakeInput() error {
 	return nil
 }
 
+// WriteValue sets the value of an exported output gpio.
 func (g *GPIO) WriteValue(val int) error {
 	if !g.isExported {
 		return gpio.NewError(fmt.Sprintf("Pin %d is not exported", g.pin))
@@ -76,6 +81,7 @@ func (g *GPIO) WriteValue(val int) error {
 	return nil
 }
 
+// ReadValue reads the value of an exported input gpio.
 func (g *GPIO) ReadValue() (int, error) {
 	if !g.isExported {
 		return 0, gpio.NewError(fmt.Sprintf("Pin %d is not exported", g.pin))
@@ -94,6 +100,7 @@ func (g *GPIO) ReadValue() (int, error) {
 	return strconv.Atoi(data)
 }
 
+// NewOutput returns a new exported output gpio.
 func NewOutput(pin int) (*GPIO, error) {
 	r := &GPIO{
 		pin:     pin,
@@ -102,6 +109,7 @@ func NewOutput(pin int) (*GPIO, error) {
 	return r, r.MakeOutput()
 }
 
+// NewOutput returns a new exported input gpio.
 func NewInput(pin int) (*GPIO, error) {
 	r := &GPIO{
 		pin:     pin,

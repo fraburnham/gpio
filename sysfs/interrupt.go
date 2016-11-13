@@ -91,6 +91,11 @@ func interruptListner(ctrlCh chan bool, g *GPIO, ch chan gpio.InterruptEvent, po
 	}
 }
 
+// SetInterrupt sets a rising, falling or both type interrupt on a gpio. InterruptEvents are
+// placed onto a chan for consumption. The pollTimeoutMs determines how long the interrupt
+// routine should block before checking if the interrupt has been cleared. If you need to
+// quickly clear and interrupt and use the gpio for something else this value should be fairly
+// low. However a lower value will result in more CPU usage.
 func (g *GPIO) SetInterrupt(edge string, ch chan gpio.InterruptEvent, pollTimeoutMs int) error {
 	if g.isInterrupt {
 		return gpio.NewError(fmt.Sprintf("Pin %d already has an interrupt set", g.pin))
@@ -121,6 +126,7 @@ func (g *GPIO) SetInterrupt(edge string, ch chan gpio.InterruptEvent, pollTimeou
 	return nil
 }
 
+// ClearInterrupt clears an interrupt on a gpio.
 func (g *GPIO) ClearInterrupt() error {
 	if !g.isInterrupt {
 		return gpio.NewError(fmt.Sprintf("Pin %d does not have an interrupt set", g.pin))
