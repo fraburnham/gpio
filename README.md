@@ -1,5 +1,7 @@
 # gpio
 
+[![CircleCI](https://circleci.com/gh/fraburnham/gpio.svg?style=svg)](https://circleci.com/gh/fraburnham/gpio)
+
 The gpio package aims to provide a simple, reusable interface to enable the creation of software on boards like the raspberry pi and beaglebone.
 
 Unless otherwise noted, the gpio source files are distributed
