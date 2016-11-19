@@ -9,24 +9,33 @@ package sysfs
 // stolen from https://developer.ridgerun.com/wiki/index.php?title=Gpio-int-test.c
 #define MAX_BUF 64
 
+struct interrupt {
+  int result;
+  int value;
+};
+
 // https://www.kernel.org/doc/Documentation/gpio/sysfs.txt
 
 // when timeout_ms is -1 wait forever
 // returns 1 on an event 0 on timeout -1 on error (like poll)
-int interrupt_poll(int fd, int timeout_ms) {
+struct interrupt interrupt_poll(int fd, int timeout_ms) {
   struct pollfd fds[1];
+  struct interrupt i[1];
 
   fds[0].fd = fd;
   fds[0].events = POLLPRI;
 
-  int result = poll(fds, 1, timeout_ms);
+  i[0].result = poll(fds, 1, timeout_ms);
   if (fds[0].revents & POLLPRI) {
+    char buf[MAX_BUF];
     lseek(fd, 0, SEEK_SET);
-    char *buf[MAX_BUF];
-    read(fd, buf, MAX_BUF);
+    read(fd, &buf, MAX_BUF);
+    i[0].value = atoi(buf);
+    printf("\nPoll result: %d, Read val: %d\n", i[0].result, i[0].value); // leaving this in until rangefinder is fixe
+    // also this will need to make it to github
   }
 
-  return result;
+  return i[0];
 }
 
 int c_read(int fd) {
@@ -70,16 +79,11 @@ func interruptListner(ctrlCh chan bool, g *GPIO, ch chan gpio.InterruptEvent, po
 			return
 		default:
 			poll := C.interrupt_poll(fd, C.int(pollTimeoutMs))
-			switch poll {
+			switch poll.result {
 			case 1:
 				eventTime := time.Now()
-				val, err := g.ReadValue()
-				if err != nil {
-					ch <- gpio.InterruptEvent{Err: err}
-					continue
-				}
 				ch <- gpio.InterruptEvent{
-					Value:     val,
+					Value:     int(poll.value),
 					Timestamp: eventTime}
 			case -1:
 				ch <- gpio.InterruptEvent{
