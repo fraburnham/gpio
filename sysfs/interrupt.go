@@ -31,8 +31,6 @@ struct interrupt interrupt_poll(int fd, int timeout_ms) {
     lseek(fd, 0, SEEK_SET);
     read(fd, &buf, MAX_BUF);
     i[0].value = atoi(buf);
-    printf("\nPoll result: %d, Read val: %d\n", i[0].result, i[0].value); // leaving this in until rangefinder is fixe
-    // also this will need to make it to github
   }
 
   return i[0];
